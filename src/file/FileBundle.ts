@@ -10,11 +10,11 @@ import MultiStream from "multistream";
 // import { createTransactionAsync } from 'arweave-stream';
 import type { JWKInterface } from "../interface-jwk";
 import { promisify } from "util";
-import base64url from "base64url";
 import { pipeline } from "stream/promises";
 
 import type { CreateTransactionInterface, Transaction } from "$/utils";
 import { resolve } from "path";
+import base58 from "bs58";
 // import { Readable } from 'stream';
 // import { createTransactionAsync } from 'arweave-stream';
 // import { pipeline } from 'stream/promises';
@@ -131,7 +131,7 @@ export class FileBundle implements BundleInterface {
     for (let i = 32; i < 32 + 64 * (await this.length()); i += 64) {
       yield {
         offset: byteArrayToLong(await read(handle.fd, Buffer.allocUnsafe(32), 0, 32, i).then((r) => r.buffer)),
-        id: await read(handle.fd, Buffer.allocUnsafe(32), 0, 32, i + 32).then((r) => base64url.encode(r.buffer)),
+        id: await read(handle.fd, Buffer.allocUnsafe(32), 0, 32, i + 32).then((r) => base58.encode(r.buffer)),
       };
     }
     await handle.close();
@@ -140,7 +140,7 @@ export class FileBundle implements BundleInterface {
   private async *itemsGenerator(): AsyncGenerator<FileDataItem> {
     let counter = 0;
     for await (const { id } of this.getHeaders()) {
-      yield new FileDataItem(this.txs[counter], base64url.toBuffer(id));
+      yield new FileDataItem(this.txs[counter], base58.decode(id));
       counter++;
     }
   }
@@ -148,7 +148,7 @@ export class FileBundle implements BundleInterface {
   private async getById(txId: string): Promise<FileDataItem> {
     let counter = 0;
     for await (const { id } of this.getHeaders()) {
-      if (id === txId) return new FileDataItem(this.txs[counter], base64url.toBuffer(id));
+      if (id === txId) return new FileDataItem(this.txs[counter], base58.decode(id));
       counter++;
     }
     throw new Error("Can't find by id");
@@ -159,7 +159,7 @@ export class FileBundle implements BundleInterface {
 
     for await (const { id } of this.getHeaders()) {
       if (count === index) {
-        return new FileDataItem(this.txs[count], base64url.toBuffer(id));
+        return new FileDataItem(this.txs[count], base58.decode(id));
       }
       count++;
     }

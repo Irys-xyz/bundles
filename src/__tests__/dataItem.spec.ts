@@ -90,7 +90,8 @@ describe("DataItem", () => {
             });
             describe("given we want to get the id", () => {
               it("should return the id", async () => {
-                expect(dataItem.id).toBe("mM5C3u9R1AJp1UL1MUvvLHRo1AGtXYUWi_q0wBCPdfc");
+                // expect(dataItem.id).toBe("mM5C3u9R1AJp1UL1MUvvLHRo1AGtXYUWi_q0wBCPdfc");
+                expect(dataItem.id).toBe("BHVPXzXznQ8hqa76NcarF9B8LPgSyvzSebTfBBardGcW");
               });
             });
             describe("given we want to get the owner", () => {

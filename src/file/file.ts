@@ -9,6 +9,7 @@ import { streamSigner } from "../stream/index";
 import type { Readable } from "stream";
 import type { Tag } from "../tags";
 import { deserializeTags } from "../tags";
+import base58 from "bs58";
 
 type File = string | FileHandle;
 const read = promisify(FSRead);
@@ -87,7 +88,7 @@ export async function getHeaderAt(file: File, index: number): Promise<DataItemHe
   await fd.close();
   return {
     offset: byteArrayToLong(headerBuffer.subarray(0, 32)),
-    id: base64url.encode(headerBuffer.subarray(32, 64)),
+    id: base58.encode(headerBuffer.subarray(32, 64)),
   };
 }
 

@@ -10,7 +10,8 @@ import { SIG_CONFIG, SignatureConfig } from "./constants";
 import { getCryptoDriver } from "$/utils";
 import { deserializeTags } from "./tags";
 import { createHash } from "crypto";
-import type { Base64URLString } from "./types";
+import type { Base58String, Base64URLString } from "./types";
+import base58 from "bs58";
 
 export const MIN_BINARY_SIZE = 80;
 export const MAX_TAG_BYTES = 4096;
@@ -39,8 +40,8 @@ export class DataItem implements BundleItem {
     return DataItem.verify(this.binary);
   }
 
-  get id(): Base64URLString {
-    return base64url.encode(this.rawId);
+  get id(): Base58String {
+    return base58.encode(this.rawId);
   }
 
   set id(id: string) {

@@ -11,6 +11,7 @@ import { deepHash } from "../deepHash";
 import type { Signer } from "../signing/index";
 import { deserializeTags } from "../tags";
 import { createHash } from "crypto";
+import base58 from "bs58";
 
 export async function processStream(stream: Readable): Promise<Record<string, any>[]> {
   const reader = getReader(stream);
@@ -22,7 +23,7 @@ export async function processStream(stream: Readable): Promise<Record<string, an
   bytes = await readBytes(reader, bytes, headersLength);
   const headers: [number, string][] = new Array(itemCount);
   for (let i = 0; i < headersLength; i += 64) {
-    headers[i / 64] = [byteArrayToLong(bytes.subarray(i, i + 32)), base64url(Buffer.from(bytes.subarray(i + 32, i + 64)))];
+    headers[i / 64] = [byteArrayToLong(bytes.subarray(i, i + 32)), base58.encode(Buffer.from(bytes.subarray(i + 32, i + 64)))];
   }
 
   bytes = bytes.subarray(headersLength);
@@ -125,7 +126,7 @@ export async function processStream(stream: Readable): Promise<Record<string, an
     transform.end();
 
     // Check id
-    if (id !== base64url(createHash("sha256").update(signature).digest())) throw new Error("ID doesn't match signature");
+    if (id !== base58.encode(createHash("sha256").update(signature).digest())) throw new Error("ID doesn't match signature");
 
     const Signer = indexToType[signatureType];
 
