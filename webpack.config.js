@@ -55,6 +55,6 @@ module.exports = {
     filename: "bundle.js",
     path: path.resolve(__dirname, "./build/web/"),
     libraryTarget: "umd",
-    library: "Arbundles",
+    library: "bundles",
   },
 };
