@@ -1,29 +1,26 @@
-# ANS-104 Bundles
-
-**If you want to use Bundlr Network head over to [this repo](https://github.com/Bundlr-Network/js-client)**
+# Irys bundles
+**If you want to use the Irys Network, head over to [our SDK](https://github.com/Irys-xyz/js-sdk)**
 
 A low level library for creating, editing, reading and verifying bundles.
-
-See [ANS-104](https://github.com/ArweaveTeam/arweave-standards/blob/master/ans/ANS-104.md) for more details.
 
 ## Installing the library
 
 Using npm:
 
-`npm install arbundles`
+`npm install @irys/bundles`
 
 Using yarn:
 
-`yarn add arbundles`
+`yarn add @irys/bundles`
 
 ## Creating bundles
 
 ```ts
-import { bundleAndSignData, createData } from "arbundles";
+import { bundleAndSignData, createData, EthereumSigner } from "@irys/bundles";
 
 const dataItems = [createData("some data"), createData("some other data")];
 
-const signer = new ArweaveSigner(jwk);
+const signer = new EthereumSigner("privateKey")
 
 const bundle = await bundleAndSignData(dataItems, signer);
 ```

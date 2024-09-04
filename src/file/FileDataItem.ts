@@ -12,7 +12,8 @@ import axios from "axios";
 import { SIG_CONFIG } from "../constants";
 import { promisify } from "util";
 import { deserializeTags } from "../tags";
-import type { Base64URLString } from "../types";
+import type { Base58String, Base64URLString } from "../types";
+import base58 from "bs58";
 
 const read = promisify(FSRead);
 const write = promisify(FSWrite);
@@ -39,9 +40,9 @@ export class FileDataItem implements BundleItem {
 
   private _id?: Buffer;
 
-  get id(): string {
+  get id(): Base58String {
     if (!this._id) throw new Error("FileDataItem - ID is undefined");
-    return base64url.encode(this._id);
+    return base58.encode(this._id);
   }
 
   get rawId(): Buffer {

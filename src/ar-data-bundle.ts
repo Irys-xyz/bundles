@@ -35,13 +35,13 @@ export async function bundleAndSignData(dataItems: DataItem[], signer: Signer): 
   const binaries = await Promise.all(
     dataItems.map(async (d, index) => {
       // Sign DataItem
-      const id = d.isSigned() ? d.rawId : await sign(d, signer);
+      const rawId = d.isSigned() ? d.rawId : await sign(d, signer);
       // Create header array
       const header = new Uint8Array(64);
       // Set offset
       header.set(longTo32ByteArray(d.getRaw().byteLength), 0);
       // Set id
-      header.set(id, 32);
+      header.set(rawId, 32);
       // Add header to array of headers
       headers.set(header, 64 * index);
       // Convert to array for flattening

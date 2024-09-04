@@ -6,6 +6,7 @@ import type { BundleInterface } from "./BundleInterface";
 import type { JWKInterface } from "./interface-jwk";
 import { createHash } from "crypto";
 import type { CreateTransactionInterface, Transaction } from "$/utils";
+import base58 from "bs58";
 
 const HEADER_START = 32;
 
@@ -56,7 +57,7 @@ export class Bundle implements BundleInterface {
       if (bundleId.length === 0) {
         throw new Error("Invalid bundle, id specified in headers doesn't exist");
       }
-      ids.push(base64url.encode(bundleId));
+      ids.push(base58.encode(bundleId));
     }
 
     return ids;
@@ -68,7 +69,7 @@ export class Bundle implements BundleInterface {
     }
 
     const start = 64 + 64 * index;
-    return base64url.encode(this.binary.subarray(start, start + 32));
+    return base58.encode(this.binary.subarray(start, start + 32));
   }
 
   public async toTransaction(
@@ -85,7 +86,7 @@ export class Bundle implements BundleInterface {
   public async verify(): Promise<boolean> {
     for (const item of this.items) {
       const valid = await item.isValid();
-      const expected = base64url(createHash("sha256").update(item.rawSignature).digest());
+      const expected = base58.encode(createHash("sha256").update(item.rawSignature).digest());
       if (!(valid && item.id === expected)) {
         return false;
       }

@@ -1,8 +1,8 @@
-import * as arbundlesSrc from "./src";
+import * as bundlesSrc from "./src";
 import * as stream from "./src/stream";
-const expObj = { ...arbundlesSrc, stream };
-globalThis.arbundles ??= expObj;
+const expObj = { ...bundlesSrc, stream };
+globalThis.bundles ??= expObj;
 export * from "./src/index";
 export * from "./src/stream";
 export default expObj;
-export const arbundles = expObj;
+export const bundles = expObj;
