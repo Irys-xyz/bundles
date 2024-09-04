@@ -44,8 +44,6 @@ describe("Polygon signing tests", function () {
     await d.sign(signer);
     expect(await d.isValid()).toBe(true);
 
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
     expect((await d.rawOwner()).toString("hex")).toEqual(signer.pk);
     expect(await d.signatureType()).toEqual(3);
     expect(await d.target()).toEqual("OXcT1sVRSA5eGwt2k6Yuz8-3e3g9WJi5uSE99CWqsBs");
