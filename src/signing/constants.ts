@@ -8,6 +8,7 @@ import {
   InjectedAptosSigner,
   MultiSignatureAptosSigner,
   TypedEthereumSigner,
+  StarknetSigner
 } from "./chains/index";
 
 export type IndexToType = Record<
@@ -42,4 +43,8 @@ export const indexToType: IndexToType = {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-expect-error
   7: TypedEthereumSigner,
+   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-expect-error
+  8: StarknetSigner
+
 };
