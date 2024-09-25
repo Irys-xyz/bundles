@@ -1,7 +1,6 @@
 jest.setTimeout(20000);
 import StarknetSigner from "../signing/chains/StarknetSigner";
-import { RpcProvider } from "starknet";
-import Crypto from "crypto";
+import { RpcProvider, shortString, TypedData } from "starknet";
 import { createData } from "../../index";
 
 const tagsTestVariations = [
@@ -18,13 +17,35 @@ const tagsTestVariations = [
   },
 ];
 
+const sampleData: TypedData = {
+  types: {
+    StarkNetDomain: [
+      { name: "name", type: "felt" },
+      { name: "version", type: "felt" },
+      { name: "chainId", type: "felt" },
+      { name: "verifyingContract", type: "felt" }
+    ],
+    Person: [
+      { name: "name", type: "felt" },
+      { name: "wallet", type: "felt" }
+    ]
+  },
+  domain: {
+    name: "Starknet App",
+    version: "1",
+    chainId: shortString.encodeShortString('SN_SEPOLIA'),
+    verifyingContract: "0x123456789abcdef"
+  },
+  primaryType: "Person",
+  message: {
+    name: "Alice",
+    wallet: "0xabcdef"
+  }
+};
+
 const dataTestVariations = [
-  { description: "empty string", data: "" },
-  { description: "small string", data: "hello world" },
-  { description: "large string", data: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{};':\",./<>?`~" },
-  { description: "empty buffer", data: Buffer.from([]) },
-  { description: "small buffer", data: Buffer.from("hello world") },
-  { description: "large buffer", data: Buffer.from("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{};':\",./<>?`~") },
+  { description: "empty string", data: sampleData },
+  { description: "small string", data: sampleData },
 ];
 
 describe("Typed Starknet Signer", () => {
@@ -36,39 +57,40 @@ describe("Typed Starknet Signer", () => {
 
   beforeAll(async () => {
     signer = new StarknetSigner(provider, myAddressInStarknet, PrivateKey);
+    await signer.init();
   });
 
-  it("should sign a known value", async () => {
-    const data = Buffer.from("Hello-world!");
+  it("should sign a known values", async () => {
    const expectedSignature = Buffer.from([
-    1, 114, 235,  23,  11, 129, 235,  41, 193,  99,  37, 195,
-    7,  92, 120, 196, 216,  86, 170, 132,  45,  38, 234, 192,
-   92, 108,  83, 180, 250,  64,  95,   2,   0, 119, 220,  61,
-  212, 202, 154, 141, 140, 112,  99, 169, 204,   5, 232,   4,
-  203, 246,   9,  70, 254,  36, 150, 193,  72,   0,  15,  25,
-  127,  59, 138, 239,   1,  83,  78,  95,  83,  69,  80,  79,
-   76,  73,  65
-])
+    0, 231, 104,  35, 186,   0, 173,  38, 114, 230, 193,
+    190,   8, 117,  18,  84, 171, 169, 146, 240,  35, 143,
+      76,  19, 117,  37, 150, 223, 222,  99, 174,  42,   4,
+    219,  62, 122,   6,  70, 251, 206,  76,  10,  59, 175,
+    136,  94, 198, 176, 206, 241, 132, 122, 197,  72,  58,
+    185, 114, 169, 151,  52, 224, 245,  40,  23,   1
+  ]);
 
-    const signature = await signer.sign(data);
+    const buffer = Buffer.from(JSON.stringify(sampleData));
+    const signature = await signer.sign(Uint8Array.from(buffer));
     const signatureBuffer = Buffer.from(signature);
     expect(signatureBuffer).toEqual(expectedSignature);
   });
 
   it("should verify a known values", async () => {
-    const data = Buffer.from("Hello-world!");
-    const signature = await signer.sign(data);
-    const isValid = await StarknetSigner.verify(signer.publicKey, data, signature);
+    const buffer = Buffer.from(JSON.stringify(sampleData));
+    const signature = await signer.sign(Uint8Array.from(buffer));
+    const isValid = await StarknetSigner.verify(signer.publicKey, buffer, signature);
     expect(isValid).toEqual(true);
   });
-  it("should sign & verify an unknown value", async () => {
-    const randData = Crypto.randomBytes(256);
-    const signature = await signer.sign(randData);
-    const isValid = await StarknetSigner.verify(signer.publicKey, randData, signature);
+  it("should sign & verify", async () => {
+    const buffer = Buffer.from(JSON.stringify(sampleData));
+    const signature = await signer.sign(Uint8Array.from(buffer));
+    const isValid = await StarknetSigner.verify(signer.publicKey, buffer, signature);
     expect(isValid).toEqual(true);
   });
-  describe("Create & Validate DataItem", () => {
-    it("should create a valid dataItem", async () => {
+
+  describe("Create & Validate DataItems", () => {
+    it("should create a valid dataItemss", async () => {
       const data = "Hello, Bundlr!";
       const tags = [{ name: "Hello", value: "Bundlr" }];
       const item = createData(data, signer, { tags });
@@ -79,30 +101,32 @@ describe("Typed Starknet Signer", () => {
     describe("With an unknown wallet", () => {
       it("should sign & verify an unknown value", async () => {
         const randSigner = new StarknetSigner(provider, myAddressInStarknet, PrivateKey);
-        const randData = Crypto.randomBytes(256);
-        const signature = await randSigner.sign(randData);
-        const isValid = await StarknetSigner.verify(signer.publicKey, randData, signature);
+        const buffer = Buffer.from(JSON.stringify(sampleData));
+        const signature = await randSigner.sign(Uint8Array.from(buffer));
+        const isValid = await StarknetSigner.verify(signer.publicKey, buffer, signature);
         expect(isValid).toEqual(true);
       });
     });
 
-    describe("and given we want to create a dataItem", () => {
+    describe("and given we want to create a dataItems", () => {
       describe.each(tagsTestVariations)("with $description tags", ({ tags }) => {
         describe.each(dataTestVariations)("and with $description data", ({ data }) => {
           it("should create a valid dataItem", async () => {
-            const item = createData(data, signer, { tags });
+            const item = createData(JSON.stringify(data), signer, { tags });
             await item.sign(signer);
             expect(await item.isValid()).toBe(true);
           });
+
           it("should set the correct tags", async () => {
-            const item = createData(data, signer, { tags });
+            const item = createData(JSON.stringify(data), signer, { tags });
             await item.sign(signer);
             expect(item.tags).toEqual(tags ?? []);
           });
+
           it("should set the correct data", async () => {
-            const item = createData(data, signer, { tags });
+            const item = createData(JSON.stringify(data), signer, { tags });
             await item.sign(signer);
-            expect(item.rawData).toEqual(Buffer.from(data));
+            expect(item.rawData).toEqual(data);
           });
         });
       });
