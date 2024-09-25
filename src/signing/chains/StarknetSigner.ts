@@ -4,9 +4,8 @@ import {
   WeierstrassSignatureType,
   ec,
   encode,
-  Signer as StarknetSignerAlias,
-  TypedData,
-  typedData
+  hash,
+  BigNumberish
 } from "starknet";
 import type { Signer } from "../index";
 import { SignatureConfig, SIG_CONFIG } from "../../constants";
@@ -31,10 +30,10 @@ export default class StarknetSigner implements Signer {
 
   public async init() {
     try {
-      const signer = new StarknetSignerAlias(StarknetSigner.privateKey);
-      const pub_key = await signer.getPubKey();
+      const pub_key = encode.addHexPrefix(encode.buf2hex(ec.starkCurve.getPublicKey(StarknetSigner.privateKey, true)));
       let hexKey = pub_key.startsWith("0x") ? pub_key.slice(2) : pub_key;
-      this.publicKey = Buffer.from(0 + hexKey, "hex");
+
+      this.publicKey = Buffer.from(hexKey, 'hex');
       this.chainId = await StarknetSigner.provider.getChainId();
     } catch (error) {
       console.error("Error setting public key or chain ID:", error);
@@ -47,12 +46,9 @@ export default class StarknetSigner implements Signer {
     }
     if (!this.signer.signMessage) throw new Error("Selected signer does not support message signing");
 
-    // decode uint8array to retrieve typedData
-    const decodedJson = (Buffer.from(message)).toString();
-    const decodedTypeData: TypedData = JSON.parse(decodedJson);
-
     // generate message hash and signature
-    const msgHash = typedData.getMessageHash(decodedTypeData, StarknetSigner.address);
+    const msg: BigNumberish[] = uint8ArrayToBigNumberishArray(message);
+    const msgHash = hash.computeHashOnElements(msg);
     const signature: WeierstrassSignatureType = ec.starkCurve.sign(msgHash, StarknetSigner.privateKey);
 
     const r = BigInt(signature.r).toString(16).padStart(64, "0"); // Convert BigInt to hex string
@@ -64,7 +60,7 @@ export default class StarknetSigner implements Signer {
     const sArray = Uint8Array.from(Buffer.from(s, "hex"));
     const recoveryArray = Uint8Array.from(Buffer.from(recovery, "hex"));
     
-    // Concatenate the arrays including the chainIdArray
+    // Concatenate the arrays
     const result = new Uint8Array(rArray.length + sArray.length + recoveryArray.length);
     result.set(rArray);
     result.set(sArray, rArray.length);
@@ -73,15 +69,34 @@ export default class StarknetSigner implements Signer {
   }
 
   static async verify(_pk: Buffer, message: Uint8Array, _signature: Uint8Array, _opts?: any): Promise<boolean> {
-    // decode uint8array to retrieve typedData
-    const decodedJson = (Buffer.from(message)).toString();
-    const decodedTypeData: TypedData = JSON.parse(decodedJson);
-
     // generate message hash and signature
-    const msgHash = typedData.getMessageHash(decodedTypeData, StarknetSigner.address);
-    const fullPubKey = encode.addHexPrefix(encode.buf2hex(ec.starkCurve.getPublicKey(StarknetSigner.privateKey, true)));
+    const msg: BigNumberish[] = uint8ArrayToBigNumberishArray(message);
+    const msgHash = hash.computeHashOnElements(msg);
+    const fullPubKey = encode.addHexPrefix(encode.buf2hex(_pk));
+    console.log(fullPubKey)
 
     // verify
     return ec.starkCurve.verify(_signature.slice(0, -1), msgHash, fullPubKey);
   }
+}
+
+// helper function to convert Uint8Array -> BigNumberishArray
+function uint8ArrayToBigNumberishArray(uint8Arr: Uint8Array): BigNumberish[] {
+  const chunkSize = 31; // 252 bits = 31.5 bytes, but using 31 bytes for safety
+  const bigNumberishArray: BigNumberish[] = [];
+
+  for (let i = 0; i < uint8Arr.length; i += chunkSize) {
+      // Extract a chunk of size 31 bytes
+      const chunk = uint8Arr.slice(i, i + chunkSize);
+      
+      // Convert the chunk to a bigint
+      let bigIntValue = BigInt(0);
+      for (let j = 0; j < chunk.length; j++) {
+          bigIntValue = (bigIntValue << BigInt(8)) + BigInt(chunk[j]);
+      }
+
+      bigNumberishArray.push(bigIntValue);
+  }
+
+  return bigNumberishArray;
 }
