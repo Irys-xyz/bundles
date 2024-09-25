@@ -22,4 +22,11 @@ async function getSignatureData(item: DataItem): Promise<Uint8Array> {
   ]);
 }
 
-export default getSignatureData;
+async function getStarknetSignatureData(item: DataItem): Promise<Uint8Array> {
+  return Uint8Array.from(item.rawData)
+}
+
+export {
+  getSignatureData,
+  getStarknetSignatureData
+}

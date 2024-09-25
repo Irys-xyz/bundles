@@ -1,4 +1,4 @@
-import getSignatureData from "./ar-data-base";
+import { getSignatureData, getStarknetSignatureData} from "./ar-data-base";
 import { longTo32ByteArray } from "./utils";
 import type DataItem from "./DataItem";
 import Bundle from "./Bundle";
@@ -64,7 +64,13 @@ export async function bundleAndSignData(dataItems: DataItem[], signer: Signer): 
  * @returns signings - signature and id in byte-arrays
  */
 export async function getSignatureAndId(item: DataItem, signer: Signer): Promise<{ signature: Buffer; id: Buffer }> {
-  const signatureData = await getSignatureData(item);
+  let signatureData; 
+  if (signer.signatureType == 8) {
+    signatureData = await getStarknetSignatureData(item);
+  }
+  else {
+    signatureData = await getSignatureData(item);
+  }
 
   const signatureBytes = await signer.sign(signatureData);
   const idBytes = await getCryptoDriver().hash(signatureBytes);

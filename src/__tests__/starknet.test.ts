@@ -91,7 +91,7 @@ describe("Typed Starknet Signer", () => {
 
   describe("Create & Validate DataItems", () => {
     it("should create a valid dataItemss", async () => {
-      const data = "Hello, Bundlr!";
+      const data = JSON.stringify(sampleData);
       const tags = [{ name: "Hello", value: "Bundlr" }];
       const item = createData(data, signer, { tags });
       await item.sign(signer);
@@ -126,7 +126,7 @@ describe("Typed Starknet Signer", () => {
           it("should set the correct data", async () => {
             const item = createData(JSON.stringify(data), signer, { tags });
             await item.sign(signer);
-            expect(item.rawData).toEqual(data);
+            expect(item.rawData).toEqual(Buffer.from(JSON.stringify(data)));
           });
         });
       });

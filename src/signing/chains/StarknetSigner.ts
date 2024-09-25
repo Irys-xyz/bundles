@@ -22,7 +22,6 @@ export default class StarknetSigner implements Signer {
   readonly signatureLength: number = SIG_CONFIG[SignatureConfig.STARKNET].sigLength;
   readonly signatureType: number = SignatureConfig.STARKNET;
 
-  // Constructor to set static properties
   constructor(provider: RpcProvider, address: string, pKey: string) {
     StarknetSigner.provider = provider;
     StarknetSigner.address = address;
