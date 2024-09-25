@@ -43,9 +43,35 @@ const sampleData: TypedData = {
   }
 };
 
+const sampleDataTwo: TypedData = {
+  types: {
+    StarkNetDomain: [
+      { name: "name", type: "felt" },
+      { name: "version", type: "felt" },
+      { name: "chainId", type: "felt" },
+    ],
+    Vote: [
+      { name: "voter", type: "felt" },
+      { name: "proposalId", type: "felt" },
+      { name: "support", type: "felt" },
+    ]
+  },
+  primaryType: "Vote",
+  domain: {
+    name: "StarkDAO",
+    version: "1",
+    chainId: shortString.encodeShortString('SN_SEPOLIA'),
+  },
+  message: {
+    voter: "0x0123456789abcdef",
+    proposalId: "0x42",
+    support: "1" 
+  }
+};
+
 const dataTestVariations = [
   { description: "empty string", data: sampleData },
-  { description: "small string", data: sampleData },
+  { description: "small string", data: sampleDataTwo },
 ];
 
 describe("Typed Starknet Signer", () => {
