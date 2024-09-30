@@ -1,4 +1,4 @@
-import { getSignatureData } from "../ar-data-base";
+import getSignatureData from "../ar-data-base";
 import { createData, EthereumSigner } from "../../index";
 
 describe("getSignatureData", () => {

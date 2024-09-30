@@ -5,7 +5,7 @@ import { sign } from "./ar-data-bundle";
 import type { BundleItem } from "./BundleItem";
 import type { Signer } from "./signing/index";
 import { indexToType } from "./signing/index";
-import { getSignatureData, getStarknetSignatureData } from "./ar-data-base";
+import getSignatureData from "./ar-data-base";
 import { SIG_CONFIG, SignatureConfig } from "./constants";
 import { getCryptoDriver } from "$/utils";
 import { deserializeTags } from "./tags";
@@ -237,14 +237,7 @@ export class DataItem implements BundleItem {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const Signer = indexToType[sigType];
 
-    let signatureData;
-    if (sigType == 8) {
-      signatureData = await getStarknetSignatureData(item);
-    }
-    else {
-      signatureData = await getSignatureData(item);
-    }
-
+    const signatureData = await getSignatureData(item);
     return await Signer.verify(item.rawOwner, signatureData, item.rawSignature);
   }
 

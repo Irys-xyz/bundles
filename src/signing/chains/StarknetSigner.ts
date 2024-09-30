@@ -73,7 +73,6 @@ export default class StarknetSigner implements Signer {
     const msg: BigNumberish[] = uint8ArrayToBigNumberishArray(message);
     const msgHash = hash.computeHashOnElements(msg);
     const fullPubKey = encode.addHexPrefix(encode.buf2hex(_pk));
-    console.log(fullPubKey)
 
     // verify
     return ec.starkCurve.verify(_signature.slice(0, -1), msgHash, fullPubKey);
