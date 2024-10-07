@@ -13,28 +13,28 @@ import { SignatureConfig, SIG_CONFIG } from "../../constants";
 export default class StarknetSigner implements Signer {
   protected signer: Account;
   public publicKey: Buffer;
-  public static address: string;
-  private static privateKey: string;
-  public static provider: RpcProvider;
+  public address: string;
+  private privateKey: string;
+  public provider: RpcProvider;
   public chainId: string;
   readonly ownerLength: number = SIG_CONFIG[SignatureConfig.STARKNET].pubLength;
   readonly signatureLength: number = SIG_CONFIG[SignatureConfig.STARKNET].sigLength;
   readonly signatureType: number = SignatureConfig.STARKNET;
 
   constructor(provider: RpcProvider, address: string, pKey: string) {
-    StarknetSigner.provider = provider;
-    StarknetSigner.address = address;
-    StarknetSigner.privateKey = pKey;
+    this.provider = provider;
+    this.address = address;
+    this.privateKey = pKey;
     this.signer = new Account(provider, address, pKey);
   }
 
   public async init() {
     try {
-      const pub_key = encode.addHexPrefix(encode.buf2hex(ec.starkCurve.getPublicKey(StarknetSigner.privateKey, true)));
+      const pub_key = encode.addHexPrefix(encode.buf2hex(ec.starkCurve.getPublicKey(this.privateKey, true)));
       let hexKey = pub_key.startsWith("0x") ? pub_key.slice(2) : pub_key;
 
       this.publicKey = Buffer.from(hexKey, 'hex');
-      this.chainId = await StarknetSigner.provider.getChainId();
+      this.chainId = await this.provider.getChainId();
     } catch (error) {
       console.error("Error setting public key or chain ID:", error);
     }
@@ -42,14 +42,14 @@ export default class StarknetSigner implements Signer {
 
   async sign(message: Uint8Array, _opts?: any): Promise<Uint8Array> {
     if (!this.publicKey) {
-      this.init();
+      await this.init();
     }
     if (!this.signer.signMessage) throw new Error("Selected signer does not support message signing");
 
     // generate message hash and signature
     const msg: BigNumberish[] = uint8ArrayToBigNumberishArray(message);
     const msgHash = hash.computeHashOnElements(msg);
-    const signature: WeierstrassSignatureType = ec.starkCurve.sign(msgHash, StarknetSigner.privateKey);
+    const signature: WeierstrassSignatureType = ec.starkCurve.sign(msgHash, this.privateKey);
 
     const r = BigInt(signature.r).toString(16).padStart(64, "0"); // Convert BigInt to hex string
     const s = BigInt(signature.s).toString(16).padStart(64, "0"); // Convert BigInt to hex string
