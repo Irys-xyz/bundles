@@ -241,9 +241,9 @@ export class DataItem implements BundleItem {
     return await Signer.verify(item.rawOwner, signatureData, item.rawSignature);
   }
 
-  public async getSignatureData(): Promise<Uint8Array> {
-    return getSignatureData(this);
-  }
+    public async getSignatureData(): Promise<Uint8Array> {
+      return getSignatureData(this);
+    }
 
   /**
    * Returns the start byte of the tags section (number of tags)
