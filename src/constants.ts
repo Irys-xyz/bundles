@@ -51,9 +51,9 @@ export const SIG_CONFIG: Record<SignatureConfig, SignatureMeta> = {
     pubLength: 42,
     sigName: "typedEthereum",
   },
-  [SignatureConfig.STARKNET]:{
-    sigLength:65,
+  [SignatureConfig.STARKNET]: {
+    sigLength: 65,
     pubLength: 33,
-    sigName:'starknet'
-  }
+    sigName: "starknet",
+  },
 };

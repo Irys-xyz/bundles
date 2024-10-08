@@ -1,12 +1,5 @@
-import {
-  Account,
-  RpcProvider,
-  WeierstrassSignatureType,
-  ec,
-  encode,
-  hash,
-  BigNumberish
-} from "starknet";
+import type { RpcProvider, WeierstrassSignatureType, BigNumberish } from "starknet";
+import { Account, ec, encode, hash } from "starknet";
 import type { Signer } from "../index";
 import { SignatureConfig, SIG_CONFIG } from "../../constants";
 
@@ -28,12 +21,12 @@ export default class StarknetSigner implements Signer {
     this.signer = new Account(provider, address, pKey);
   }
 
-  public async init() {
+  public async init(): Promise<void> {
     try {
       const pub_key = encode.addHexPrefix(encode.buf2hex(ec.starkCurve.getPublicKey(this.privateKey, true)));
-      let hexKey = pub_key.startsWith("0x") ? pub_key.slice(2) : pub_key;
+      const hexKey = pub_key.startsWith("0x") ? pub_key.slice(2) : pub_key;
 
-      this.publicKey = Buffer.from(hexKey, 'hex');
+      this.publicKey = Buffer.from(hexKey, "hex");
       this.chainId = await this.provider.getChainId();
     } catch (error) {
       console.error("Error setting public key or chain ID:", error);
@@ -53,13 +46,13 @@ export default class StarknetSigner implements Signer {
 
     const r = BigInt(signature.r).toString(16).padStart(64, "0"); // Convert BigInt to hex string
     const s = BigInt(signature.s).toString(16).padStart(64, "0"); // Convert BigInt to hex string
-    // @ts-ignore
+    if (!signature.recovery) throw new Error("signature is missing required recovery component");
     const recovery = signature.recovery.toString(16).padStart(2, "0"); // Convert recovery to hex string
 
     const rArray = Uint8Array.from(Buffer.from(r, "hex"));
     const sArray = Uint8Array.from(Buffer.from(s, "hex"));
     const recoveryArray = Uint8Array.from(Buffer.from(recovery, "hex"));
-    
+
     // Concatenate the arrays
     const result = new Uint8Array(rArray.length + sArray.length + recoveryArray.length);
     result.set(rArray);
@@ -85,16 +78,16 @@ function uint8ArrayToBigNumberishArray(uint8Arr: Uint8Array): BigNumberish[] {
   const bigNumberishArray: BigNumberish[] = [];
 
   for (let i = 0; i < uint8Arr.length; i += chunkSize) {
-      // Extract a chunk of size 31 bytes
-      const chunk = uint8Arr.slice(i, i + chunkSize);
-      
-      // Convert the chunk to a bigint
-      let bigIntValue = BigInt(0);
-      for (let j = 0; j < chunk.length; j++) {
-          bigIntValue = (bigIntValue << BigInt(8)) + BigInt(chunk[j]);
-      }
+    // Extract a chunk of size 31 bytes
+    const chunk = uint8Arr.slice(i, i + chunkSize);
 
-      bigNumberishArray.push(bigIntValue);
+    // Convert the chunk to a bigint
+    let bigIntValue = BigInt(0);
+    for (let j = 0; j < chunk.length; j++) {
+      bigIntValue = (bigIntValue << BigInt(8)) + BigInt(chunk[j]);
+    }
+
+    bigNumberishArray.push(bigIntValue);
   }
 
   return bigNumberishArray;

@@ -1,7 +1,7 @@
 import type { Signer } from "../index";
 import base64url from "base64url";
 import { SIG_CONFIG } from "../../constants";
-// eslint-disable-next-line @typescript-eslint/prefer-ts-expect-error
+// eslint-disable-next-line @typescript-eslint/prefer-ts-expect-error, @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import type { MessageSignerWalletAdapter } from "@solana/wallet-adapter-base";
 import { verify } from "@noble/ed25519";
