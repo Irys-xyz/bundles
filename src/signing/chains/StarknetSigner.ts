@@ -46,18 +46,15 @@ export default class StarknetSigner implements Signer {
 
     const r = BigInt(signature.r).toString(16).padStart(64, "0"); // Convert BigInt to hex string
     const s = BigInt(signature.s).toString(16).padStart(64, "0"); // Convert BigInt to hex string
-    if (!signature.recovery) throw new Error("signature is missing required recovery component");
-    const recovery = signature.recovery.toString(16).padStart(2, "0"); // Convert recovery to hex string
 
     const rArray = Uint8Array.from(Buffer.from(r, "hex"));
     const sArray = Uint8Array.from(Buffer.from(s, "hex"));
-    const recoveryArray = Uint8Array.from(Buffer.from(recovery, "hex"));
 
     // Concatenate the arrays
-    const result = new Uint8Array(rArray.length + sArray.length + recoveryArray.length);
+    const result = new Uint8Array(rArray.length + sArray.length);
     result.set(rArray);
     result.set(sArray, rArray.length);
-    result.set(recoveryArray, rArray.length + sArray.length);
+    console.log(result)
     return result;
   }
 
@@ -68,7 +65,7 @@ export default class StarknetSigner implements Signer {
     const fullPubKey = encode.addHexPrefix(encode.buf2hex(_pk));
 
     // verify
-    return ec.starkCurve.verify(_signature.slice(0, -1), msgHash, fullPubKey);
+    return ec.starkCurve.verify(_signature, msgHash, fullPubKey);
   }
 }
 
