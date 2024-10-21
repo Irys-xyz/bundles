@@ -1,5 +1,5 @@
-import type { RpcProvider, WeierstrassSignatureType, BigNumberish } from "starknet";
-import { Account, ec, encode, hash } from "starknet";
+import type { RpcProvider, WeierstrassSignatureType, TypedData, BigNumberish } from "starknet";
+import { Account, ec, encode, typedData } from "starknet";
 import type { Signer } from "../index";
 import { SignatureConfig, SIG_CONFIG } from "../../constants";
 
@@ -40,9 +40,9 @@ export default class StarknetSigner implements Signer {
     if (!this.signer.signMessage) throw new Error("Selected signer does not support message signing");
 
     // generate message hash and signature
-    const msg: BigNumberish[] = uint8ArrayToBigNumberishArray(message);
-    const msgHash = hash.computeHashOnElements(msg);
-    const signature: WeierstrassSignatureType = ec.starkCurve.sign(msgHash, this.privateKey);
+    const msg = uint8ArrayToBigNumberishArray(message);
+    const data: TypedData = getTypedData(msg);
+    const signature = (await this.signer.signMessage(data)) as unknown as WeierstrassSignatureType;
 
     const r = BigInt(signature.r).toString(16).padStart(64, "0"); // Convert BigInt to hex string
     const s = BigInt(signature.s).toString(16).padStart(64, "0"); // Convert BigInt to hex string
@@ -54,22 +54,48 @@ export default class StarknetSigner implements Signer {
     const result = new Uint8Array(rArray.length + sArray.length);
     result.set(rArray);
     result.set(sArray, rArray.length);
-    console.log(result)
+
     return result;
   }
 
   static async verify(_pk: Buffer, message: Uint8Array, _signature: Uint8Array, _opts?: any): Promise<boolean> {
-    // generate message hash and signature
-    const msg: BigNumberish[] = uint8ArrayToBigNumberishArray(message);
-    const msgHash = hash.computeHashOnElements(msg);
     const fullPubKey = encode.addHexPrefix(encode.buf2hex(_pk));
+
+    // generate message hash and signature
+    const msg = uint8ArrayToBigNumberishArray(message);
+    const data: TypedData = getTypedData(msg);
+    const msgHash = typedData.getMessageHash(data, "0x078e47BBEB4Dc687741825d7bEAD044e229960D3362C0C21F45Bb920db08B0c4");
 
     // verify
     return ec.starkCurve.verify(_signature, msgHash, fullPubKey);
   }
 }
 
-// helper function to convert Uint8Array -> BigNumberishArray
+// convert message to TypedData format
+function getTypedData(message: BigNumberish[]): TypedData {
+  const typedData: TypedData = {
+    types: {
+      StarkNetDomain: [
+        { name: "name", type: "felt" },
+        { name: "version", type: "felt" },
+      ],
+      SignedMessage: [
+        { name: "message", type: "felt*" }
+      ],
+    },
+    primaryType: "SignedMessage",
+    domain: {
+      name: "Bundlr",
+      version: "1",
+    },
+    message: {
+      message: message
+    }
+  };
+  return typedData
+}
+
+// convert Uint8Array to BigNumberishArray
 function uint8ArrayToBigNumberishArray(uint8Arr: Uint8Array): BigNumberish[] {
   const chunkSize = 31; // 252 bits = 31.5 bytes, but using 31 bytes for safety
   const bigNumberishArray: BigNumberish[] = [];
