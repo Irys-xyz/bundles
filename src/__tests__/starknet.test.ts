@@ -41,12 +41,9 @@ describe("Typed Starknet Signer", () => {
 
   it("should sign a known value", async () => {
     const expectedSignature = Buffer.from([
-      0, 141,  89, 218,   7, 210, 161, 193, 149,  90, 173,
-      20,  74,  95,  14, 119, 246,  77,   3,  65,   6, 237,
-      152, 241,  38,   3,  55, 241, 164, 156,  40, 110,   4,
-      204,   1, 168,  41, 158,  84, 110, 212, 197, 190, 199,
-      225, 149, 152, 127, 180, 242,  36, 237,  60,  28,  24,
-      7,  43,  55, 227, 205,   7,  24, 111, 132
+      0, 141, 89, 218, 7, 210, 161, 193, 149, 90, 173, 20, 74, 95, 14, 119, 246, 77, 3, 65, 6, 237, 152, 241, 38, 3, 55, 241, 164, 156, 40, 110, 4,
+      204, 1, 168, 41, 158, 84, 110, 212, 197, 190, 199, 225, 149, 152, 127, 180, 242, 36, 237, 60, 28, 24, 7, 43, 55, 227, 205, 7, 24, 111, 132, 7,
+      142, 71, 187, 235, 77, 198, 135, 116, 24, 37, 215, 190, 173, 4, 78, 34, 153, 96, 211, 54, 44, 12, 33, 244, 91, 185, 32, 219, 8, 176, 196,
     ]);
 
     const data = Buffer.from("Hello Bundlr!");
@@ -81,14 +78,15 @@ describe("Typed Starknet Signer", () => {
   it("should evaulate to false for invalid signature", async () => {
     // generate invalid signature
     const signature = Uint8Array.from([
-      4, 182, 243, 200, 173, 166, 38, 42, 18, 165, 33, 59, 155, 164, 184, 207, 51, 68, 119, 38, 52, 132, 173, 106, 178, 135, 61, 161, 171, 37, 245,
-      52, 1, 105, 72, 184, 232, 25, 63, 181, 16, 106, 148, 94, 107, 138, 225, 225, 64, 36, 57, 90, 22, 66, 208, 251, 188, 5, 33, 205, 77, 24, 12, 250
+      0, 141, 89, 218, 7, 210, 161, 193, 149, 90, 173, 20, 74, 95, 14, 119, 246, 77, 3, 65, 6, 237, 152, 241, 38, 3, 55, 241, 164, 156, 40, 110, 4,
+      204, 1, 168, 41, 158, 84, 110, 212, 197, 190, 199, 225, 149, 152, 127, 180, 242, 36, 237, 60, 28, 24, 7, 43, 55, 227, 205, 7, 24, 111, 132, 7,
+      142, 71, 187, 235, 77, 198, 135, 116, 24, 37, 215, 190, 173, 4, 78, 34, 153, 96, 211, 54, 44, 12, 33, 244, 91, 185, 32, 219, 8, 176, 196,
     ]);
 
     // try verifying
     const publicKey = signer.publicKey.toString("hex");
     const hexString = publicKey.startsWith("0x") ? publicKey.slice(2) : publicKey;
-    const data = Buffer.from("Hello Bundlr!");
+    const data = Buffer.from("Hello World!");
     const isValid = await StarknetSigner.verify(Buffer.from(hexString, "hex"), data, signature);
     expect(isValid).toEqual(false);
   });
@@ -114,7 +112,7 @@ describe("Typed Starknet Signer", () => {
     });
 
     describe("With an unknown wallet", () => {
-      it("should sign & verify an unknown values", async () => {
+      it("should sign & verify an unknown value", async () => {
         const randSigner = new StarknetSigner(provider, myAddressInStarknet, PrivateKey);
         const randData = Buffer.from(Crypto.randomBytes(256));
         const signature = await randSigner.sign(Uint8Array.from(randData));
@@ -129,7 +127,7 @@ describe("Typed Starknet Signer", () => {
     describe("and given we want to create a dataItem", () => {
       describe.each(tagsTestVariations)("with $description tags", ({ tags }) => {
         describe.each(dataTestVariations)("and with $description data", ({ data }) => {
-          it("should create a valid dataItem", async () => {
+          it("should create a valid dataItems", async () => {
             const item = createData(Buffer.from(data), signer, { tags });
             await item.sign(signer);
             expect(await item.isValid()).toBe(true);

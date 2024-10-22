@@ -46,28 +46,38 @@ export default class StarknetSigner implements Signer {
 
     const r = BigInt(signature.r).toString(16).padStart(64, "0"); // Convert BigInt to hex string
     const s = BigInt(signature.s).toString(16).padStart(64, "0"); // Convert BigInt to hex string
+    const address = this.signer.address.replace(/^0x/, "");
 
     const rArray = Uint8Array.from(Buffer.from(r, "hex"));
     const sArray = Uint8Array.from(Buffer.from(s, "hex"));
+    const addressToArray = Uint8Array.from(Buffer.from(address, "hex"));
 
     // Concatenate the arrays
-    const result = new Uint8Array(rArray.length + sArray.length);
+    const result = new Uint8Array(rArray.length + sArray.length + addressToArray.length);
     result.set(rArray);
     result.set(sArray, rArray.length);
-
+    result.set(addressToArray, rArray.length + sArray.length);
     return result;
   }
 
   static async verify(_pk: Buffer, message: Uint8Array, _signature: Uint8Array, _opts?: any): Promise<boolean> {
+    // retrieve address from signature
+    const rLength = 32;
+    const sLength = 32;
+    const addressArrayRetrieved = _signature.slice(rLength + sLength, rLength + sLength + 32);
+    const originalAddress = "0x" + Buffer.from(addressArrayRetrieved).toString("hex");
+
+    // calculate full public key
     const fullPubKey = encode.addHexPrefix(encode.buf2hex(_pk));
 
     // generate message hash and signature
     const msg = uint8ArrayToBigNumberishArray(message);
     const data: TypedData = getTypedData(msg);
-    const msgHash = typedData.getMessageHash(data, "0x078e47BBEB4Dc687741825d7bEAD044e229960D3362C0C21F45Bb920db08B0c4");
+    const msgHash = typedData.getMessageHash(data, originalAddress);
+    const signature = _signature.slice(0, -32);
 
     // verify
-    return ec.starkCurve.verify(_signature, msgHash, fullPubKey);
+    return ec.starkCurve.verify(signature, msgHash, fullPubKey);
   }
 }
 
@@ -79,9 +89,7 @@ function getTypedData(message: BigNumberish[]): TypedData {
         { name: "name", type: "felt" },
         { name: "version", type: "felt" },
       ],
-      SignedMessage: [
-        { name: "message", type: "felt*" }
-      ],
+      SignedMessage: [{ name: "message", type: "felt*" }],
     },
     primaryType: "SignedMessage",
     domain: {
@@ -89,10 +97,10 @@ function getTypedData(message: BigNumberish[]): TypedData {
       version: "1",
     },
     message: {
-      message: message
-    }
+      message: message,
+    },
   };
-  return typedData
+  return typedData;
 }
 
 // convert Uint8Array to BigNumberishArray
