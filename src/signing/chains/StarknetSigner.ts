@@ -1,5 +1,5 @@
-import type { RpcProvider, WeierstrassSignatureType, BigNumberish } from "starknet";
-import { Account, ec, encode, hash } from "starknet";
+import type { RpcProvider, WeierstrassSignatureType, TypedData, BigNumberish } from "starknet";
+import { Account, ec, encode, typedData } from "starknet";
 import type { Signer } from "../index";
 import { SignatureConfig, SIG_CONFIG } from "../../constants";
 
@@ -23,8 +23,8 @@ export default class StarknetSigner implements Signer {
 
   public async init(): Promise<void> {
     try {
-      const pub_key = encode.addHexPrefix(encode.buf2hex(ec.starkCurve.getPublicKey(this.privateKey, true)));
-      const hexKey = pub_key.startsWith("0x") ? pub_key.slice(2) : pub_key;
+      const pubKey = encode.addHexPrefix(encode.buf2hex(ec.starkCurve.getPublicKey(this.privateKey, true)));
+      const hexKey = pubKey.startsWith("0x") ? pubKey.slice(2) : pubKey;
 
       this.publicKey = Buffer.from(hexKey, "hex");
       this.chainId = await this.provider.getChainId();
@@ -40,40 +40,86 @@ export default class StarknetSigner implements Signer {
     if (!this.signer.signMessage) throw new Error("Selected signer does not support message signing");
 
     // generate message hash and signature
-    const msg: BigNumberish[] = uint8ArrayToBigNumberishArray(message);
-    const msgHash = hash.computeHashOnElements(msg);
-    const signature: WeierstrassSignatureType = ec.starkCurve.sign(msgHash, this.privateKey);
+    const chainId = this.chainId;
+    const msg = uint8ArrayToHexArray(message);
+    const data: TypedData = getTypedData(msg, chainId);
+    console.log(data);
+    const signature = (await this.signer.signMessage(data)) as unknown as WeierstrassSignatureType;
 
     const r = BigInt(signature.r).toString(16).padStart(64, "0"); // Convert BigInt to hex string
     const s = BigInt(signature.s).toString(16).padStart(64, "0"); // Convert BigInt to hex string
-    if (!signature.recovery) throw new Error("signature is missing required recovery component");
-    const recovery = signature.recovery.toString(16).padStart(2, "0"); // Convert recovery to hex string
+    const address = this.signer.address.replace(/^0x/, "");
 
     const rArray = Uint8Array.from(Buffer.from(r, "hex"));
     const sArray = Uint8Array.from(Buffer.from(s, "hex"));
-    const recoveryArray = Uint8Array.from(Buffer.from(recovery, "hex"));
+    const addressToArray = Uint8Array.from(Buffer.from(address, "hex"));
+    const chainIdToArray = Uint8Array.from(Buffer.from(chainId.replace(/^0x/, "").padStart(64, "0"), "hex"));
 
     // Concatenate the arrays
-    const result = new Uint8Array(rArray.length + sArray.length + recoveryArray.length);
+    const result = new Uint8Array(rArray.length + sArray.length + addressToArray.length + chainIdToArray.length);
     result.set(rArray);
     result.set(sArray, rArray.length);
-    result.set(recoveryArray, rArray.length + sArray.length);
+    result.set(addressToArray, rArray.length + sArray.length);
+    result.set(chainIdToArray, rArray.length + sArray.length + addressToArray.length);
+
+    if (result.length != 128) throw new Error("Signature must be 128 bytes!");
     return result;
   }
 
   static async verify(_pk: Buffer, message: Uint8Array, _signature: Uint8Array, _opts?: any): Promise<boolean> {
-    // generate message hash and signature
-    const msg: BigNumberish[] = uint8ArrayToBigNumberishArray(message);
-    const msgHash = hash.computeHashOnElements(msg);
+    const rLength = 32;
+    const sLength = 32;
+    const addressLength = 32;
+    const chainIdLength = 32;
+
+    // retrieve address from signature
+    const addressArrayRetrieved = _signature.slice(rLength + sLength, rLength + sLength + addressLength);
+    const originalAddress = "0x" + Buffer.from(addressArrayRetrieved).toString("hex");
+
+    // retrieve chainId from signature
+    const chainIdArrayRetrieved = _signature.slice(rLength + sLength + addressLength, rLength + sLength + addressLength + chainIdLength);
+    const originalChainId = "0x" + Buffer.from(chainIdArrayRetrieved).toString("hex");
+
+    // calculate full public key
     const fullPubKey = encode.addHexPrefix(encode.buf2hex(_pk));
 
+    // generate message hash and signature
+    const msg = uint8ArrayToHexArray(message);
+    const data: TypedData = getTypedData(msg, originalChainId);
+    const msgHash = typedData.getMessageHash(data, originalAddress);
+    const signature = _signature.slice(0, -64);
+
     // verify
-    return ec.starkCurve.verify(_signature.slice(0, -1), msgHash, fullPubKey);
+    return ec.starkCurve.verify(signature, msgHash, fullPubKey);
   }
 }
 
-// helper function to convert Uint8Array -> BigNumberishArray
-function uint8ArrayToBigNumberishArray(uint8Arr: Uint8Array): BigNumberish[] {
+// convert message to TypedData format
+function getTypedData(message: BigNumberish[], chainId: string): TypedData {
+  const typedData: TypedData = {
+    types: {
+      StarkNetDomain: [
+        { name: "name", type: "shortstring" },
+        { name: "version", type: "shortstring" },
+        { name: "chainId", type: "shortstring" },
+      ],
+      SignedMessage: [{ name: "transactionHash", type: "felt*" }],
+    },
+    primaryType: "SignedMessage",
+    domain: {
+      name: "Irys",
+      version: "1",
+      chainId: chainId,
+    },
+    message: {
+      transactionHash: message,
+    },
+  };
+  return typedData;
+}
+
+// convert Uint8Array to HexArray
+function uint8ArrayToHexArray(uint8Arr: Uint8Array): BigNumberish[] {
   const chunkSize = 31; // 252 bits = 31.5 bytes, but using 31 bytes for safety
   const bigNumberishArray: BigNumberish[] = [];
 
@@ -90,5 +136,10 @@ function uint8ArrayToBigNumberishArray(uint8Arr: Uint8Array): BigNumberish[] {
     bigNumberishArray.push(bigIntValue);
   }
 
-  return bigNumberishArray;
+  const hexArray = bigNumberishArray.map((num) => {
+    const hexValue = BigInt(num).toString(16);
+    return "0x" + hexValue.padStart(64, "0");
+  });
+
+  return hexArray;
 }
