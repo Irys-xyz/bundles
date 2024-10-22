@@ -23,8 +23,8 @@ export default class StarknetSigner implements Signer {
 
   public async init(): Promise<void> {
     try {
-      const pub_key = encode.addHexPrefix(encode.buf2hex(ec.starkCurve.getPublicKey(this.privateKey, true)));
-      const hexKey = pub_key.startsWith("0x") ? pub_key.slice(2) : pub_key;
+      const pubKey = encode.addHexPrefix(encode.buf2hex(ec.starkCurve.getPublicKey(this.privateKey, true)));
+      const hexKey = pubKey.startsWith("0x") ? pubKey.slice(2) : pubKey;
 
       this.publicKey = Buffer.from(hexKey, "hex");
       this.chainId = await this.provider.getChainId();
@@ -41,8 +41,9 @@ export default class StarknetSigner implements Signer {
 
     // generate message hash and signature
     const chainId = this.chainId;
-    const msg = uint8ArrayToBigNumberishArray(message);
+    const msg = uint8ArrayToHexArray(message);
     const data: TypedData = getTypedData(msg, chainId);
+    console.log(data);
     const signature = (await this.signer.signMessage(data)) as unknown as WeierstrassSignatureType;
 
     const r = BigInt(signature.r).toString(16).padStart(64, "0"); // Convert BigInt to hex string
@@ -61,6 +62,7 @@ export default class StarknetSigner implements Signer {
     result.set(addressToArray, rArray.length + sArray.length);
     result.set(chainIdToArray, rArray.length + sArray.length + addressToArray.length);
 
+    if (result.length != 128) throw new Error("Signature must be 128 bytes!");
     return result;
   }
 
@@ -82,7 +84,7 @@ export default class StarknetSigner implements Signer {
     const fullPubKey = encode.addHexPrefix(encode.buf2hex(_pk));
 
     // generate message hash and signature
-    const msg = uint8ArrayToBigNumberishArray(message);
+    const msg = uint8ArrayToHexArray(message);
     const data: TypedData = getTypedData(msg, originalChainId);
     const msgHash = typedData.getMessageHash(data, originalAddress);
     const signature = _signature.slice(0, -64);
@@ -101,23 +103,23 @@ function getTypedData(message: BigNumberish[], chainId: string): TypedData {
         { name: "version", type: "shortstring" },
         { name: "chainId", type: "shortstring" },
       ],
-      SignedMessage: [{ name: "message", type: "felt*" }],
+      SignedMessage: [{ name: "transactionHash", type: "felt*" }],
     },
     primaryType: "SignedMessage",
     domain: {
-      name: "Bundlr",
+      name: "Irys",
       version: "1",
       chainId: chainId,
     },
     message: {
-      message: message,
+      transactionHash: message,
     },
   };
   return typedData;
 }
 
-// convert Uint8Array to BigNumberishArray
-function uint8ArrayToBigNumberishArray(uint8Arr: Uint8Array): BigNumberish[] {
+// convert Uint8Array to HexArray
+function uint8ArrayToHexArray(uint8Arr: Uint8Array): BigNumberish[] {
   const chunkSize = 31; // 252 bits = 31.5 bytes, but using 31 bytes for safety
   const bigNumberishArray: BigNumberish[] = [];
 
@@ -133,5 +135,11 @@ function uint8ArrayToBigNumberishArray(uint8Arr: Uint8Array): BigNumberish[] {
 
     bigNumberishArray.push(bigIntValue);
   }
-  return bigNumberishArray;
+
+  const hexArray = bigNumberishArray.map((num) => {
+    const hexValue = BigInt(num).toString(16);
+    return "0x" + hexValue.padStart(64, "0");
+  });
+
+  return hexArray;
 }

@@ -39,15 +39,15 @@ describe("Typed Starknet Signer", () => {
     await signer.init();
   });
 
-  it("should sign a known values", async () => {
+  it("should sign a known value", async () => {
     const expectedSignature = Buffer.from([
-      1, 97, 23, 22, 40, 161, 114, 58, 182, 161, 83, 120, 241, 253, 19, 214, 124, 52, 42, 128, 84, 80, 90, 234, 145, 165, 248, 60, 100, 128, 144, 199,
-      2, 156, 193, 110, 55, 251, 188, 35, 208, 120, 137, 147, 61, 2, 89, 55, 112, 71, 203, 130, 242, 167, 100, 226, 76, 181, 116, 210, 80, 226, 17,
-      175, 7, 142, 71, 187, 235, 77, 198, 135, 116, 24, 37, 215, 190, 173, 4, 78, 34, 153, 96, 211, 54, 44, 12, 33, 244, 91, 185, 32, 219, 8, 176,
+      7, 40, 45, 224, 54, 86, 219, 215, 201, 14, 54, 225, 129, 8, 235, 156, 191, 134, 76, 186, 211, 70, 164, 19, 70, 187, 249, 83, 114, 206, 133, 199,
+      6, 217, 93, 219, 136, 131, 51, 60, 119, 150, 37, 185, 235, 254, 209, 154, 161, 247, 16, 185, 81, 8, 78, 165, 190, 67, 212, 105, 135, 185, 102,
+      155, 7, 142, 71, 187, 235, 77, 198, 135, 116, 24, 37, 215, 190, 173, 4, 78, 34, 153, 96, 211, 54, 44, 12, 33, 244, 91, 185, 32, 219, 8, 176,
       196, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 83, 78, 95, 83, 69, 80, 79, 76, 73, 65,
     ]);
 
-    const data = Buffer.from("Hello Bundlr!");
+    const data = Buffer.from("Hello Irys!");
     const signature = await signer.sign(data);
     const signatureBuffer = Buffer.from(signature);
     expect(signatureBuffer).toEqual(expectedSignature);
@@ -67,8 +67,8 @@ describe("Typed Starknet Signer", () => {
     expect(signatureBuffer).not.toEqual(expectedSignature);
   });
 
-  it("should sign & verify a known values", async () => {
-    const data = Buffer.from("Hello Bundlr!");
+  it("should sign & verify a known value", async () => {
+    const data = Buffer.from("Hello Irys!");
     const signature = await signer.sign(data);
 
     const publicKey = signer.publicKey.toString("hex");
@@ -95,7 +95,7 @@ describe("Typed Starknet Signer", () => {
   });
 
   it("should evaulate to false for invalid message", async () => {
-    const data = Buffer.from("Hello Bundlr!");
+    const data = Buffer.from("Hello Irys!");
     const signature = await signer.sign(data);
 
     const publicKey = signer.publicKey.toString("hex");
@@ -106,9 +106,9 @@ describe("Typed Starknet Signer", () => {
   });
 
   describe("Create & Validate DataItems", () => {
-    it("should create a valid dataItem", async () => {
-      const data = Buffer.from("Hello, Bundlr!");
-      const tags = [{ name: "Hello", value: "Bundlr" }];
+    it("should create a valid dataItems", async () => {
+      const data = Buffer.from("Hello, Irys!");
+      const tags = [{ name: "Hello", value: "Irys" }];
       const item = createData(data, signer, { tags });
       await item.sign(signer);
       expect(await item.isValid()).toBe(true);
