@@ -40,8 +40,9 @@ export default class StarknetSigner implements Signer {
     if (!this.signer.signMessage) throw new Error("Selected signer does not support message signing");
 
     // generate message hash and signature
+    const chainId = this.chainId;
     const msg = uint8ArrayToBigNumberishArray(message);
-    const data: TypedData = getTypedData(msg);
+    const data: TypedData = getTypedData(msg, chainId);
     const signature = (await this.signer.signMessage(data)) as unknown as WeierstrassSignatureType;
 
     const r = BigInt(signature.r).toString(16).padStart(64, "0"); // Convert BigInt to hex string
@@ -51,30 +52,41 @@ export default class StarknetSigner implements Signer {
     const rArray = Uint8Array.from(Buffer.from(r, "hex"));
     const sArray = Uint8Array.from(Buffer.from(s, "hex"));
     const addressToArray = Uint8Array.from(Buffer.from(address, "hex"));
+    const chainIdToArray = Uint8Array.from(Buffer.from(chainId.replace(/^0x/, ""), "hex"));
 
     // Concatenate the arrays
-    const result = new Uint8Array(rArray.length + sArray.length + addressToArray.length);
+    const result = new Uint8Array(rArray.length + sArray.length + addressToArray.length + chainIdToArray.length);
     result.set(rArray);
     result.set(sArray, rArray.length);
     result.set(addressToArray, rArray.length + sArray.length);
+    result.set(chainIdToArray, rArray.length + sArray.length + addressToArray.length);
+
     return result;
   }
 
   static async verify(_pk: Buffer, message: Uint8Array, _signature: Uint8Array, _opts?: any): Promise<boolean> {
-    // retrieve address from signature
     const rLength = 32;
     const sLength = 32;
-    const addressArrayRetrieved = _signature.slice(rLength + sLength, rLength + sLength + 32);
+    const addressLength = 32;
+    const chainIdLength = 32;
+
+    // retrieve address from signature
+    const addressArrayRetrieved = _signature.slice(rLength + sLength, rLength + sLength + addressLength);
     const originalAddress = "0x" + Buffer.from(addressArrayRetrieved).toString("hex");
+
+    // retrieve chainId from signature
+    const chainIdArrayRetrieved = _signature.slice(rLength + sLength + addressLength, rLength + sLength + addressLength + chainIdLength);
+    const originalChainId = "0x" + Buffer.from(chainIdArrayRetrieved).toString("hex");
+    console.log(originalChainId);
 
     // calculate full public key
     const fullPubKey = encode.addHexPrefix(encode.buf2hex(_pk));
 
     // generate message hash and signature
     const msg = uint8ArrayToBigNumberishArray(message);
-    const data: TypedData = getTypedData(msg);
+    const data: TypedData = getTypedData(msg, originalChainId);
     const msgHash = typedData.getMessageHash(data, originalAddress);
-    const signature = _signature.slice(0, -32);
+    const signature = _signature.slice(0, -42);
 
     // verify
     return ec.starkCurve.verify(signature, msgHash, fullPubKey);
@@ -82,12 +94,13 @@ export default class StarknetSigner implements Signer {
 }
 
 // convert message to TypedData format
-function getTypedData(message: BigNumberish[]): TypedData {
+function getTypedData(message: BigNumberish[], chainId: string): TypedData {
   const typedData: TypedData = {
     types: {
       StarkNetDomain: [
-        { name: "name", type: "felt" },
-        { name: "version", type: "felt" },
+        { name: "name", type: "shortstring" },
+        { name: "version", type: "shortstring" },
+        { name: "chainId", type: "shortstring" },
       ],
       SignedMessage: [{ name: "message", type: "felt*" }],
     },
@@ -95,6 +108,7 @@ function getTypedData(message: BigNumberish[]): TypedData {
     domain: {
       name: "Bundlr",
       version: "1",
+      chainId: chainId,
     },
     message: {
       message: message,
