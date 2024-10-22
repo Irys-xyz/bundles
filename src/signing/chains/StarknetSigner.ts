@@ -52,7 +52,7 @@ export default class StarknetSigner implements Signer {
     const rArray = Uint8Array.from(Buffer.from(r, "hex"));
     const sArray = Uint8Array.from(Buffer.from(s, "hex"));
     const addressToArray = Uint8Array.from(Buffer.from(address, "hex"));
-    const chainIdToArray = Uint8Array.from(Buffer.from(chainId.replace(/^0x/, ""), "hex"));
+    const chainIdToArray = Uint8Array.from(Buffer.from(chainId.replace(/^0x/, "").padStart(64, "0"), "hex"));
 
     // Concatenate the arrays
     const result = new Uint8Array(rArray.length + sArray.length + addressToArray.length + chainIdToArray.length);
@@ -77,7 +77,6 @@ export default class StarknetSigner implements Signer {
     // retrieve chainId from signature
     const chainIdArrayRetrieved = _signature.slice(rLength + sLength + addressLength, rLength + sLength + addressLength + chainIdLength);
     const originalChainId = "0x" + Buffer.from(chainIdArrayRetrieved).toString("hex");
-    console.log(originalChainId);
 
     // calculate full public key
     const fullPubKey = encode.addHexPrefix(encode.buf2hex(_pk));
@@ -86,7 +85,7 @@ export default class StarknetSigner implements Signer {
     const msg = uint8ArrayToBigNumberishArray(message);
     const data: TypedData = getTypedData(msg, originalChainId);
     const msgHash = typedData.getMessageHash(data, originalAddress);
-    const signature = _signature.slice(0, -42);
+    const signature = _signature.slice(0, -64);
 
     // verify
     return ec.starkCurve.verify(signature, msgHash, fullPubKey);
@@ -134,6 +133,5 @@ function uint8ArrayToBigNumberishArray(uint8Arr: Uint8Array): BigNumberish[] {
 
     bigNumberishArray.push(bigIntValue);
   }
-
   return bigNumberishArray;
 }
