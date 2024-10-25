@@ -1,4 +1,4 @@
-import type { RpcProvider, WeierstrassSignatureType, TypedData, WalletAccount } from "starknet";
+import type { RpcProvider, TypedData, WalletAccount } from "starknet";
 import { ec, encode, hash, typedData } from "starknet";
 import type { Signer } from "../index";
 import { getTypedData, uint8ArrayToBigNumberishArray } from "./StarknetSigner";
@@ -33,11 +33,14 @@ export default class InjectedStarknetSigner implements Signer {
     const chainId = this.chainId;
     const msg = hash.computeHashOnElements(uint8ArrayToBigNumberishArray(message));
     const data: TypedData = getTypedData(msg, chainId);
-    const signature = (await this.walletAccount.signMessage(data)) as unknown as WeierstrassSignatureType;
+    const signature = await this.walletAccount.signMessage(data);
 
-    const r = BigInt(signature[3]).toString(16).padStart(64, "0"); // Convert BigInt to hex string
-    const s = BigInt(signature[4]).toString(16).padStart(64, "0"); // Convert BigInt to hex string
-    const address = this.walletAccount.address.replace(/^0x0?|^0x/, "");
+    // due to account abstraction different wallets, return different signature types.
+    // the last two components in the array are mostly the r and s components
+    const rs_components = (Array.from(signature)).slice(-2);
+    const r = BigInt(rs_components[0]).toString(16).padStart(64, "0"); 
+    const s = BigInt(rs_components[1]).toString(16).padStart(64, "0");
+    const address = this.walletAccount.address.replace(/^0x0?|^0x/, "").padStart(64, "0");
 
     const rArray = Uint8Array.from(Buffer.from(r, "hex"));
     const sArray = Uint8Array.from(Buffer.from(s, "hex"));
@@ -52,7 +55,7 @@ export default class InjectedStarknetSigner implements Signer {
     result.set(chainIdToArray, rArray.length + sArray.length + addressToArray.length);
 
     // check signature is of required length
-    if (result.length != 127) throw new Error("Signature length must be 127 bytes!");
+    if (result.length != 128) throw new Error("Signature length must be 128 bytes!");
 
     return result;
   }

@@ -130,7 +130,7 @@ describe("Typed Starknet Signer", () => {
     describe("and given we want to create a dataItem", () => {
       describe.each(tagsTestVariations)("with $description tags", ({ tags }) => {
         describe.each(dataTestVariations)("and with $description data", ({ data }) => {
-          it("should create a valid dataItems", async () => {
+          it("should create a valid dataItem", async () => {
             const item = createData(Buffer.from(data), signer, { tags });
             await item.sign(signer);
             expect(await item.isValid()).toBe(true);

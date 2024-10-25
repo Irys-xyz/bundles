@@ -37,7 +37,7 @@ export default class StarknetSigner implements Signer {
     if (!this.publicKey) {
       await this.init();
     }
-    if (!this.signer.signMessage) throw new Error("Selected signer does not support message signing");
+    if (!this.signer.signMessage) throw new Error("Selected signer does not support message signing!");
 
     // generate message hash and signature
     const chainId = this.chainId;
@@ -62,7 +62,7 @@ export default class StarknetSigner implements Signer {
     result.set(chainIdToArray, rArray.length + sArray.length + addressToArray.length);
 
     // check signature is of required length
-    if (result.length != 128) throw new Error("Signature must be 128 bytes!");
+    if (result.length != 128) throw new Error("Signature length must be 128 bytes!");
 
     return result;
   }
