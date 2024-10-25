@@ -1,53 +1,43 @@
-import type { RpcProvider, WeierstrassSignatureType, TypedData, BigNumberish } from "starknet";
-import { Account, ec, encode, hash, typedData } from "starknet";
+import type { RpcProvider, WeierstrassSignatureType, TypedData, WalletAccount } from "starknet";
+import { ec, encode, hash, typedData } from "starknet";
 import type { Signer } from "../index";
+import { getTypedData, uint8ArrayToBigNumberishArray } from "./StarknetSigner";
 import { SignatureConfig, SIG_CONFIG } from "../../constants";
 
-export default class StarknetSigner implements Signer {
-  protected signer: Account;
+export default class InjectedStarknetSigner implements Signer {
+  public walletAccount: WalletAccount;
   public publicKey: Buffer;
-  public address: string;
-  private privateKey: string;
   public provider: RpcProvider;
   public chainId: string;
   readonly ownerLength: number = SIG_CONFIG[SignatureConfig.STARKNET].pubLength;
   readonly signatureLength: number = SIG_CONFIG[SignatureConfig.STARKNET].sigLength;
   readonly signatureType: number = SignatureConfig.STARKNET;
 
-  constructor(provider: RpcProvider, address: string, pKey: string) {
+  constructor(provider: RpcProvider, walletAccount: WalletAccount) {
     this.provider = provider;
-    this.address = address;
-    this.privateKey = pKey;
-    this.signer = new Account(provider, address, pKey);
+    this.walletAccount = walletAccount;
   }
 
   public async init(): Promise<void> {
     try {
-      const pubKey = encode.addHexPrefix(encode.buf2hex(ec.starkCurve.getPublicKey(this.privateKey, true)));
-      const hexKey = pubKey.startsWith("0x") ? pubKey.slice(2) : pubKey;
-
-      this.publicKey = Buffer.from(hexKey, "hex");
       this.chainId = await this.provider.getChainId();
     } catch (error) {
-      console.error("Error setting public key or chain ID:", error);
+      console.error("Error setting chain ID:", error);
     }
   }
 
   async sign(message: Uint8Array, _opts?: any): Promise<Uint8Array> {
-    if (!this.publicKey) {
-      await this.init();
-    }
-    if (!this.signer.signMessage) throw new Error("Selected signer does not support message signing");
+    if (!this.walletAccount.signMessage) throw new Error("Selected signer does not support message signing");
 
     // generate message hash and signature
     const chainId = this.chainId;
     const msg = hash.computeHashOnElements(uint8ArrayToBigNumberishArray(message));
     const data: TypedData = getTypedData(msg, chainId);
-    const signature = (await this.signer.signMessage(data)) as unknown as WeierstrassSignatureType;
+    const signature = (await this.walletAccount.signMessage(data)) as unknown as WeierstrassSignatureType;
 
-    const r = BigInt(signature.r).toString(16).padStart(64, "0"); // Convert BigInt to hex string
-    const s = BigInt(signature.s).toString(16).padStart(64, "0"); // Convert BigInt to hex string
-    const address = this.signer.address.replace(/^0x0?|^0x/, "").padStart(64, "0");
+    const r = BigInt(signature[3]).toString(16).padStart(64, "0"); // Convert BigInt to hex string
+    const s = BigInt(signature[4]).toString(16).padStart(64, "0"); // Convert BigInt to hex string
+    const address = this.walletAccount.address.replace(/^0x0?|^0x/, "");
 
     const rArray = Uint8Array.from(Buffer.from(r, "hex"));
     const sArray = Uint8Array.from(Buffer.from(s, "hex"));
@@ -62,7 +52,7 @@ export default class StarknetSigner implements Signer {
     result.set(chainIdToArray, rArray.length + sArray.length + addressToArray.length);
 
     // check signature is of required length
-    if (result.length != 128) throw new Error("Signature must be 128 bytes!");
+    if (result.length != 127) throw new Error("Signature length must be 127 bytes!");
 
     return result;
   }
@@ -93,49 +83,4 @@ export default class StarknetSigner implements Signer {
     // verify
     return ec.starkCurve.verify(signature, msgHash, fullPubKey);
   }
-}
-
-// convert message to TypedData format
-export function getTypedData(message: string, chainId: string): TypedData {
-  const typedData: TypedData = {
-    types: {
-      StarkNetDomain: [
-        { name: "name", type: "shortstring" },
-        { name: "version", type: "shortstring" },
-        { name: "chainId", type: "shortstring" },
-      ],
-      SignedMessage: [{ name: "transactionHash", type: "shortstring" }],
-    },
-    primaryType: "SignedMessage",
-    domain: {
-      name: "Irys",
-      version: "1",
-      chainId: chainId,
-    },
-    message: {
-      transactionHash: message,
-    },
-  };
-  return typedData;
-}
-
-// convert Uint8Array to BigNumberish
-export function uint8ArrayToBigNumberishArray(uint8Arr: Uint8Array): BigNumberish[] {
-  const chunkSize = 31; // 252 bits = 31.5 bytes, but using 31 bytes for safety
-  const bigNumberishArray: BigNumberish[] = [];
-
-  for (let i = 0; i < uint8Arr.length; i += chunkSize) {
-    // Extract a chunk of size 31 bytes
-    const chunk = uint8Arr.slice(i, i + chunkSize);
-
-    // Convert the chunk to a bigint
-    let bigIntValue = BigInt(0);
-    for (let j = 0; j < chunk.length; j++) {
-      bigIntValue = (bigIntValue << BigInt(8)) + BigInt(chunk[j]);
-    }
-
-    bigNumberishArray.push(bigIntValue);
-  }
-
-  return bigNumberishArray;
 }

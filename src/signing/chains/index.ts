@@ -15,3 +15,4 @@ export { default as TypedEthereumSigner } from "./TypedEthereumSigner";
 export * from "./InjectedTypedEthereumSigner";
 export { default as ArconnectSigner } from "./arconnectSigner";
 export { default as StarknetSigner } from "./StarknetSigner";
+export { default as InjectedStarknetSigner } from "./injectedStarknetSigner";
