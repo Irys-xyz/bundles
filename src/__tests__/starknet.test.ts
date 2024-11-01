@@ -67,7 +67,7 @@ describe("Typed Starknet Signer", () => {
     expect(signatureBuffer).not.toEqual(expectedSignature);
   });
 
-  it("should sign & verify a known values", async () => {
+  it("should sign & verify a known value", async () => {
     const data = Buffer.from("Hello Irys!");
     const signature = await signer.sign(data);
 
@@ -130,7 +130,7 @@ describe("Typed Starknet Signer", () => {
     describe("and given we want to create a dataItem", () => {
       describe.each(tagsTestVariations)("with $description tags", ({ tags }) => {
         describe.each(dataTestVariations)("and with $description data", ({ data }) => {
-          it("should create a valid dataItems", async () => {
+          it("should create a valid dataItem", async () => {
             const item = createData(Buffer.from(data), signer, { tags });
             await item.sign(signer);
             expect(await item.isValid()).toBe(true);
