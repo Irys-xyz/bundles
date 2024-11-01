@@ -62,7 +62,7 @@ export default class StarknetSigner implements Signer {
 
     // check signature is of required length
     if (result.length !== 96) throw new Error("Signature length must be 96 bytes!");
-    console.dir(result, { depth: null, maxArrayLength: null });
+
     return result;
   }
 
