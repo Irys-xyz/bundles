@@ -39,7 +39,7 @@ describe("Typed Starknet Signer", () => {
     await signer.init();
   });
 
-  it("should sign a known value", async () => {
+  it("should sign a known values", async () => {
     const expectedSignature = Buffer.from([
       4, 122, 51, 60, 218, 66, 57, 104, 199, 126, 49, 15, 195, 203, 209, 15, 62, 214, 104, 245, 237, 79, 12, 252, 141, 242, 95, 4, 176, 235, 231, 189,
       7, 126, 187, 220, 69, 127, 240, 85, 198, 31, 219, 33, 230, 0, 142, 230, 0, 200, 246, 208, 144, 191, 118, 88, 85, 216, 105, 65, 129, 174, 37,
@@ -67,11 +67,11 @@ describe("Typed Starknet Signer", () => {
     expect(signatureBuffer).not.toEqual(expectedSignature);
   });
 
-  it("should sign & verify a known value", async () => {
+  it("should sign & verify a known values", async () => {
     const data = Buffer.from("Hello Irys!");
     const signature = await signer.sign(data);
 
-    const publicKey = signer.publicKey.toString("hex");
+    const publicKey = signer.publicKey.slice(0, 33).toString("hex");
     const hexString = publicKey.startsWith("0x") ? publicKey.slice(2) : publicKey;
     const isValid = await StarknetSigner.verify(Buffer.from(hexString, "hex"), data, signature);
     expect(isValid).toEqual(true);
@@ -98,7 +98,7 @@ describe("Typed Starknet Signer", () => {
     const data = Buffer.from("Hello Irys!");
     const signature = await signer.sign(data);
 
-    const publicKey = signer.publicKey.toString("hex");
+    const publicKey = signer.publicKey.slice(0, 33).toString("hex");
     const hexString = publicKey.startsWith("0x") ? publicKey.slice(2) : publicKey;
     const invalidData = Buffer.from("Hello World!");
     const isValid = await StarknetSigner.verify(Buffer.from(hexString, "hex"), invalidData, signature);
@@ -120,7 +120,7 @@ describe("Typed Starknet Signer", () => {
         const randData = Buffer.from(Crypto.randomBytes(256));
         const signature = await randSigner.sign(Uint8Array.from(randData));
 
-        const publicKey = signer.publicKey.toString("hex");
+        const publicKey = signer.publicKey.slice(0, 33).toString("hex");
         const hexString = publicKey.startsWith("0x") ? publicKey.slice(2) : publicKey;
         const isValid = await StarknetSigner.verify(Buffer.from(hexString, "hex"), randData, signature);
         expect(isValid).toEqual(true);
@@ -130,7 +130,7 @@ describe("Typed Starknet Signer", () => {
     describe("and given we want to create a dataItem", () => {
       describe.each(tagsTestVariations)("with $description tags", ({ tags }) => {
         describe.each(dataTestVariations)("and with $description data", ({ data }) => {
-          it("should create a valid dataItem", async () => {
+          it("should create a valid dataItems", async () => {
             const item = createData(Buffer.from(data), signer, { tags });
             await item.sign(signer);
             expect(await item.isValid()).toBe(true);

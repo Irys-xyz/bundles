@@ -236,9 +236,14 @@ export class DataItem implements BundleItem {
 
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const Signer = indexToType[sigType];
+    let rawOwner = item.rawOwner;
+
+    if (sigType == 8) {
+      rawOwner = item.rawOwner.slice(0, 33);
+    }
 
     const signatureData = await getSignatureData(item);
-    return await Signer.verify(item.rawOwner, signatureData, item.rawSignature);
+    return await Signer.verify(rawOwner, signatureData, item.rawSignature);
   }
 
   public async getSignatureData(): Promise<Uint8Array> {
