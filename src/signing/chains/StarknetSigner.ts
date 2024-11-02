@@ -23,9 +23,15 @@ export default class StarknetSigner implements Signer {
 
   public async init(): Promise<void> {
     const pubKey = encode.addHexPrefix(encode.buf2hex(ec.starkCurve.getPublicKey(this.privateKey, true)));
-    const hexKey = pubKey.startsWith("0x") ? pubKey.slice(2) : pubKey;
+    const address = this.signer.address;
 
-    this.publicKey = Buffer.from(hexKey, "hex");
+    // get pubkey and address buffers
+    const pubKeyBuffer = Buffer.from(pubKey.startsWith("0x") ? pubKey.slice(2) : pubKey, "hex");
+    const addressBuffer = Buffer.from(address.startsWith("0x") ? address.slice(2) : address, "hex");
+
+    // concatenate buffers as pubKey
+    this.publicKey = Buffer.concat([pubKeyBuffer, addressBuffer]);
+
     this.chainId = await this.provider.getChainId();
   }
 
@@ -43,22 +49,19 @@ export default class StarknetSigner implements Signer {
 
     const r = BigInt(signature.r).toString(16).padStart(64, "0"); // Convert BigInt to hex string
     const s = BigInt(signature.s).toString(16).padStart(64, "0"); // Convert BigInt to hex string
-    const address = this.signer.address.replace(/^0x0?|^0x/, "").padStart(64, "0");
 
     const rArray = Uint8Array.from(Buffer.from(r, "hex"));
     const sArray = Uint8Array.from(Buffer.from(s, "hex"));
-    const addressToArray = Uint8Array.from(Buffer.from(address, "hex"));
     const chainIdToArray = Uint8Array.from(Buffer.from(chainId.replace(/^0x/, "").padStart(64, "0"), "hex"));
 
     // Concatenate the arrays
-    const result = new Uint8Array(rArray.length + sArray.length + addressToArray.length + chainIdToArray.length);
+    const result = new Uint8Array(rArray.length + sArray.length + chainIdToArray.length);
     result.set(rArray);
     result.set(sArray, rArray.length);
-    result.set(addressToArray, rArray.length + sArray.length);
-    result.set(chainIdToArray, rArray.length + sArray.length + addressToArray.length);
+    result.set(chainIdToArray, rArray.length + sArray.length);
 
     // check signature is of required length
-    if (result.length !== 128) throw new Error("Signature length must be 128 bytes!");
+    if (result.length !== 96) throw new Error("Signature length must be 96 bytes!");
 
     return result;
   }
@@ -66,25 +69,23 @@ export default class StarknetSigner implements Signer {
   static async verify(pubkey: Buffer, message: Uint8Array, signature: Uint8Array, _opts?: any): Promise<boolean> {
     const rLength = 32;
     const sLength = 32;
-    const addressLength = 32;
-    const chainIdLength = 32;
 
-    // retrieve address from signature
-    const addressArrayRetrieved = signature.slice(rLength + sLength, rLength + sLength + addressLength);
-    const originalAddress = "0x" + Buffer.from(addressArrayRetrieved).toString("hex");
+    // retrieve pubKey and address from pubKey
+    const originalPubKey = pubkey.slice(0, 33);
+    const originalAddress = "0x" + Buffer.from(pubkey.slice(33)).toString("hex");
 
     // retrieve chainId from signature
-    const chainIdArrayRetrieved = signature.slice(rLength + sLength + addressLength, rLength + sLength + addressLength + chainIdLength);
+    const chainIdArrayRetrieved = signature.slice(rLength + sLength);
     const originalChainId = "0x" + Buffer.from(chainIdArrayRetrieved).toString("hex");
 
     // calculate full public key
-    const fullPubKey = encode.addHexPrefix(encode.buf2hex(pubkey));
+    const fullPubKey = encode.addHexPrefix(encode.buf2hex(originalPubKey));
 
     // generate message hash and signature
     const msg = hash.computeHashOnElements(uint8ArrayToBigNumberishArray(message));
     const data: TypedData = getTypedData(msg, originalChainId);
     const msgHash = typedData.getMessageHash(data, originalAddress);
-    const trimmedSignature = signature.slice(0, -64);
+    const trimmedSignature = signature.slice(0, -32);
 
     // verify
     return ec.starkCurve.verify(trimmedSignature, msgHash, fullPubKey);
