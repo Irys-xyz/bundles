@@ -2,23 +2,34 @@ import type { RpcProvider, WeierstrassSignatureType, TypedData, BigNumberish } f
 import { Account, ec, encode, hash, typedData } from "starknet";
 import type { Signer } from "../index";
 import { SignatureConfig, SIG_CONFIG } from "../../constants";
+import { shortTo2ByteArray } from "../../utils";
+
+export function extractX(bytes: Buffer): string {
+  const hex = bytes.subarray(1).toString("hex");
+  const stripped = hex.replace(/^0+/gm, ""); // strip leading 0s
+  return `0x${stripped}`;
+}
 
 export default class StarknetSigner implements Signer {
   protected signer: Account;
+  // public key is structured as: actual public key (33 bytes), address (32 bytes), accountContractId (2 bytes)
+  // this is because normal public key -> address derivation is impossible, so we use an identifer to know which account ABI the signer is using, so we can access the public key from the account contract to verify the public key -> address association
   public publicKey: Buffer;
   public address: string;
   private privateKey: string;
   public provider: RpcProvider;
   public chainId: string;
+  public accountContractId: number;
   readonly ownerLength: number = SIG_CONFIG[SignatureConfig.STARKNET].pubLength;
   readonly signatureLength: number = SIG_CONFIG[SignatureConfig.STARKNET].sigLength;
   readonly signatureType: number = SignatureConfig.STARKNET;
 
-  constructor(provider: RpcProvider, address: string, pKey: string) {
+  constructor(provider: RpcProvider, address: string, privateKey: string, accountContractId: number) {
     this.provider = provider;
     this.address = address;
-    this.privateKey = pKey;
-    this.signer = new Account(provider, address, pKey);
+    this.privateKey = privateKey;
+    this.accountContractId = accountContractId;
+    this.signer = new Account(provider, address, privateKey);
   }
 
   public async init(): Promise<void> {
@@ -27,10 +38,12 @@ export default class StarknetSigner implements Signer {
 
     // get pubkey and address buffers
     const pubKeyBuffer = Buffer.from(pubKey.startsWith("0x") ? pubKey.slice(2) : pubKey, "hex");
+
     const addressBuffer = Buffer.from(address.startsWith("0x") ? address.slice(2) : address, "hex");
+    const accountContractId = shortTo2ByteArray(this.accountContractId);
 
     // concatenate buffers as pubKey
-    this.publicKey = Buffer.concat([pubKeyBuffer, addressBuffer]);
+    this.publicKey = Buffer.concat([pubKeyBuffer, addressBuffer, accountContractId]);
 
     this.chainId = await this.provider.getChainId();
   }
@@ -71,8 +84,8 @@ export default class StarknetSigner implements Signer {
     const sLength = 32;
 
     // retrieve pubKey and address from pubKey
-    const originalPubKey = pubkey.slice(0, 33);
-    const originalAddress = "0x" + Buffer.from(pubkey.slice(33)).toString("hex");
+    const [originalPubKey, originalAddressBin] = decomposePubkey(pubkey);
+    const originalAddress = "0x" + Buffer.from(originalAddressBin).toString("hex");
 
     // retrieve chainId from signature
     const chainIdArrayRetrieved = signature.slice(rLength + sLength);
@@ -90,6 +103,10 @@ export default class StarknetSigner implements Signer {
     // verify
     return ec.starkCurve.verify(trimmedSignature, msgHash, fullPubKey);
   }
+}
+
+export function decomposePubkey(pubkey: Buffer): [Buffer, Buffer, Buffer] {
+  return [pubkey.slice(0, 33), pubkey.slice(33, -2), pubkey.slice(-2)];
 }
 
 // convert message to TypedData format

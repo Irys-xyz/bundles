@@ -3,19 +3,22 @@ import { ec, encode, hash, typedData } from "starknet";
 import type { Signer } from "../index";
 import { getTypedData, uint8ArrayToBigNumberishArray } from "./StarknetSigner";
 import { SignatureConfig, SIG_CONFIG } from "../../constants";
+import { shortTo2ByteArray } from "../../utils";
 
 export default class InjectedStarknetSigner implements Signer {
   public walletAccount: WalletAccount;
   public publicKey: Buffer;
   public provider: RpcProvider;
   public chainId: string;
+  public accountContractId: number;
   readonly ownerLength: number = SIG_CONFIG[SignatureConfig.STARKNET].pubLength;
   readonly signatureLength: number = SIG_CONFIG[SignatureConfig.STARKNET].sigLength;
   readonly signatureType: number = SignatureConfig.STARKNET;
 
-  constructor(provider: RpcProvider, walletAccount: WalletAccount) {
+  constructor(provider: RpcProvider, walletAccount: WalletAccount, accountContractId: number) {
     this.provider = provider;
     this.walletAccount = walletAccount;
+    this.accountContractId = accountContractId;
   }
 
   public async init(pubKey: string): Promise<void> {
@@ -24,9 +27,10 @@ export default class InjectedStarknetSigner implements Signer {
     // get pubkey and address buffers
     const pubKeyBuffer = Buffer.from(pubKey.startsWith("0x") ? pubKey.slice(2) : pubKey, "hex");
     const addressBuffer = Buffer.from(address.startsWith("0x") ? address.slice(2) : address, "hex");
+    const accountContractId = shortTo2ByteArray(this.accountContractId);
 
     // concatenate buffers as pubKey
-    this.publicKey = Buffer.concat([pubKeyBuffer, addressBuffer]);
+    this.publicKey = Buffer.concat([pubKeyBuffer, addressBuffer, accountContractId]);
 
     this.chainId = await this.provider.getChainId();
   }
@@ -68,7 +72,7 @@ export default class InjectedStarknetSigner implements Signer {
 
     // retrieve pubKey and address from pubKey
     const originalPubKey = pubkey.slice(0, 33);
-    const originalAddress = "0x" + Buffer.from(pubkey.slice(33)).toString("hex");
+    const originalAddress = "0x" + Buffer.from(pubkey.slice(33, -2)).toString("hex");
 
     // retrieve chainId from signature
     const chainIdArrayRetrieved = signature.slice(rLength + sLength);

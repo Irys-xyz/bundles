@@ -53,7 +53,7 @@ export const SIG_CONFIG: Record<SignatureConfig, SignatureMeta> = {
   },
   [SignatureConfig.STARKNET]: {
     sigLength: 96, // 64 bytes signature, + 32 bytes chainId
-    pubLength: 65, // 33 bytes public key + 32 bytes address (for sdk)
+    pubLength: 67, // 33 bytes public key + 32 bytes address (for sdk) + 2 bytes accountContractId
     sigName: "starknet",
   },
 };

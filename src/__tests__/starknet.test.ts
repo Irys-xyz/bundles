@@ -33,9 +33,9 @@ describe("Typed Starknet Signer", () => {
 
   const PrivateKey = "0x0570d0ab0e4bd9735277e8db6c8e19918c64ed50423aa5860235635d2487c7bb";
   const myAddressInStarknet = "0x078e47BBEB4Dc687741825d7bEAD044e229960D3362C0C21F45Bb920db08B0c4";
-
+  const accountAbstractionId = 1;
   beforeAll(async () => {
-    signer = new StarknetSigner(provider, myAddressInStarknet, PrivateKey);
+    signer = new StarknetSigner(provider, myAddressInStarknet, PrivateKey, accountAbstractionId);
     await signer.init();
   });
 
@@ -113,7 +113,7 @@ describe("Typed Starknet Signer", () => {
 
     describe("With an unknown wallet", () => {
       it("should sign & verify an unknown value", async () => {
-        const randSigner = new StarknetSigner(provider, myAddressInStarknet, PrivateKey);
+        const randSigner = new StarknetSigner(provider, myAddressInStarknet, PrivateKey, accountAbstractionId);
         const randData = Buffer.from(Crypto.randomBytes(256));
         const signature = await randSigner.sign(Uint8Array.from(randData));
 
