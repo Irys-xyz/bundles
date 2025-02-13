@@ -33,9 +33,9 @@ describe("Typed Starknet Signer", () => {
 
   const PrivateKey = "0x0570d0ab0e4bd9735277e8db6c8e19918c64ed50423aa5860235635d2487c7bb";
   const myAddressInStarknet = "0x078e47BBEB4Dc687741825d7bEAD044e229960D3362C0C21F45Bb920db08B0c4";
-
+  const accountAbstractionId = 1;
   beforeAll(async () => {
-    signer = new StarknetSigner(provider, myAddressInStarknet, PrivateKey);
+    signer = new StarknetSigner(provider, myAddressInStarknet, PrivateKey, accountAbstractionId);
     await signer.init();
   });
 
@@ -43,8 +43,7 @@ describe("Typed Starknet Signer", () => {
     const expectedSignature = Buffer.from([
       4, 122, 51, 60, 218, 66, 57, 104, 199, 126, 49, 15, 195, 203, 209, 15, 62, 214, 104, 245, 237, 79, 12, 252, 141, 242, 95, 4, 176, 235, 231, 189,
       7, 126, 187, 220, 69, 127, 240, 85, 198, 31, 219, 33, 230, 0, 142, 230, 0, 200, 246, 208, 144, 191, 118, 88, 85, 216, 105, 65, 129, 174, 37,
-      165, 7, 142, 71, 187, 235, 77, 198, 135, 116, 24, 37, 215, 190, 173, 4, 78, 34, 153, 96, 211, 54, 44, 12, 33, 244, 91, 185, 32, 219, 8, 176,
-      196, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 83, 78, 95, 83, 69, 80, 79, 76, 73, 65,
+      165, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 83, 78, 95, 83, 69, 80, 79, 76, 73, 65,
     ]);
 
     const data = Buffer.from("Hello Irys!");
@@ -55,10 +54,9 @@ describe("Typed Starknet Signer", () => {
 
   it("should fail for an invalid signature", async () => {
     const expectedSignature = Buffer.from([
-      3, 14, 26, 44, 182, 142, 237, 13, 51, 15, 51, 142, 100, 132, 8, 70, 90, 34, 222, 66, 92, 68, 20, 86, 18, 205, 207, 16, 215, 160, 82, 238, 7,
-      227, 27, 134, 157, 27, 47, 233, 175, 89, 26, 104, 127, 142, 192, 227, 45, 149, 179, 169, 202, 38, 75, 242, 68, 84, 75, 8, 222, 153, 188, 225, 7,
-      142, 71, 187, 235, 77, 198, 135, 116, 24, 37, 215, 190, 173, 4, 78, 34, 153, 96, 211, 54, 44, 12, 33, 244, 91, 185, 32, 219, 8, 176, 196, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 83, 78, 95, 77, 65, 73, 78,
+      4, 122, 51, 60, 218, 66, 57, 104, 199, 126, 49, 15, 195, 203, 209, 15, 62, 214, 104, 245, 237, 79, 12, 252, 141, 242, 95, 4, 176, 235, 231, 189,
+      7, 126, 187, 220, 69, 127, 240, 85, 198, 31, 219, 33, 230, 0, 142, 230, 0, 200, 246, 208, 144, 191, 118, 88, 85, 216, 105, 65, 129, 174, 37,
+      165, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 83, 78, 95, 83, 69, 80, 79, 76, 73, 65,
     ]);
 
     const data = Buffer.from("Hello World!");
@@ -80,10 +78,9 @@ describe("Typed Starknet Signer", () => {
   it("should evaulate to false for invalid signature", async () => {
     // generate invalid signature
     const signature = Uint8Array.from([
-      3, 14, 26, 44, 182, 142, 237, 13, 51, 15, 51, 142, 100, 132, 8, 70, 90, 34, 222, 66, 92, 68, 20, 86, 18, 205, 207, 16, 215, 160, 82, 238, 7,
-      227, 27, 134, 157, 27, 47, 233, 175, 89, 26, 104, 127, 142, 192, 227, 45, 149, 179, 169, 202, 38, 75, 242, 68, 84, 75, 8, 222, 153, 188, 225, 7,
-      142, 71, 187, 235, 77, 198, 135, 116, 24, 37, 215, 190, 173, 4, 78, 34, 153, 96, 211, 54, 44, 12, 33, 244, 91, 185, 32, 219, 8, 176, 196, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 83, 78, 95, 77, 65, 73, 78,
+      4, 122, 51, 60, 218, 66, 57, 104, 199, 126, 49, 15, 195, 203, 209, 15, 62, 214, 104, 245, 237, 79, 12, 252, 141, 242, 95, 4, 176, 235, 231, 189,
+      7, 126, 187, 220, 69, 127, 240, 85, 198, 31, 219, 33, 230, 0, 142, 230, 0, 200, 246, 208, 144, 191, 118, 88, 85, 216, 105, 65, 129, 174, 37,
+      165, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 83, 78, 95, 83, 69, 80, 79, 76, 73, 65,
     ]);
 
     // try verifying
@@ -116,7 +113,7 @@ describe("Typed Starknet Signer", () => {
 
     describe("With an unknown wallet", () => {
       it("should sign & verify an unknown value", async () => {
-        const randSigner = new StarknetSigner(provider, myAddressInStarknet, PrivateKey);
+        const randSigner = new StarknetSigner(provider, myAddressInStarknet, PrivateKey, accountAbstractionId);
         const randData = Buffer.from(Crypto.randomBytes(256));
         const signature = await randSigner.sign(Uint8Array.from(randData));
 
