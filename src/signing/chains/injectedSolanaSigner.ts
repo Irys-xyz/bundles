@@ -26,7 +26,9 @@ export default class InjectedSolanaSigner implements Signer {
 
   async sign(message: Uint8Array): Promise<Uint8Array> {
     if (!this.provider.signMessage) throw new Error("Selected Wallet does not support message signing");
-    return await this.provider.signMessage(message);
+    const sig = await this.provider.signMessage(message);
+    // @ts-expect-error so we can use window.solana directly
+    return sig?.signature ?? sig;
   }
 
   static async verify(pk: Buffer, message: Uint8Array, signature: Uint8Array): Promise<boolean> {
