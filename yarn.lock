@@ -659,10 +659,10 @@
   resolved "https://registry.npmjs.org/@humanwhocodes/object-schema/-/object-schema-2.0.3.tgz"
   integrity sha512-93zYdMES/c1D69yZiKDBj0V24vqNzB/koF26KPaagAfd3P/4gUlh3Dys5ogAK+Exi9QyzlD8x/08Zt7wIKcDcA==
 
-"@irys/arweave@^0.0.4":
-  version "0.0.4"
-  resolved "https://registry.yarnpkg.com/@irys/arweave/-/arweave-0.0.4.tgz#a2062489f448ebe2d36fed233e675c650ca07a23"
-  integrity sha512-64OXtvca3Zdh4Rg6I5K7xRwkPwIcA5Ot8k24WqbWPSmKkZU/tZTB22TQyUdkdlmnAuqz171cBYYnJ8DTYoxtqA==
+"@irys/arweave@^0.0.5":
+  version "0.0.5"
+  resolved "https://registry.yarnpkg.com/@irys/arweave/-/arweave-0.0.5.tgz#52479bbac85b852fe2aa391b21d4d807e9676b9d"
+  integrity sha512-EUWLPnhtLI8JziG3T2QCDcoc9whSff7l9RkMjkkLuT3XQjhcqDg4zIKIRCS6Q0EC15/kAvXRALBbUq8Mfkfz4Q==
   dependencies:
     asn1.js "^5.4.1"
     async-retry "^1.3.3"
